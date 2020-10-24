@@ -13,21 +13,16 @@ func (s *slack) applyOptions(opts ...slackOption) {
 	}
 }
 
-func WebhookUrl(wu string) slackOption {
-	return func(s *slack) {
-		s.webhookUrl = wu
-	}
-}
-
 func MessageHeader(msg string) slackOption {
 	return func(s *slack) {
 		s.messageHeader = msg
 	}
 }
 
-func NewSlackReceiver(opts ...slackOption) (Notifier, error) {
+func NewSlackReceiver(webhookUrl string, opts ...slackOption) (Notifier, error) {
 	s := &slack{}
 	s.messageHeader = "New GitHub issue"
+	s.webhookUrl = webhookUrl
 	s.applyOptions(opts...)
 	return s, nil
 }
