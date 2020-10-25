@@ -1,5 +1,13 @@
 package receiver
 
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"time"
+)
+
 type slack struct {
 	webhookUrl    string
 	messageHeader string
@@ -28,5 +36,29 @@ func NewSlackReceiver(webhookUrl string, opts ...slackOption) (Notifier, error) 
 }
 
 func (s *slack) Notify(msg string) error {
+	payload, err := json.Marshal(slackRequest{Text: msg})
+	if err != nil {
+		return fmt.Errorf("failed creating payload: %v", err)
+	}
+	req, err := http.NewRequest(http.MethodPost, s.webhookUrl, bytes.NewBuffer(payload))
+	if err != nil {
+		return fmt.Errorf("failed to make http request: %v", err)
+	}
+	req.Header.Add("Content-Type", "applications/json")
+	client := http.Client{Timeout: 10 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	buff := bytes.Buffer{}
+	buff.ReadFrom(resp.Body)
+	defer resp.Body.Close()
+	if buff.String() != "ok" {
+		return fmt.Errorf("failed connecting to Slack: %v", buff.String())
+	}
 	return nil
+}
+
+type slackRequest struct {
+	Text string `json:"text"`
 }
