@@ -1,26 +1,18 @@
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
+	"sync"
 
-	"github.com/google/go-github/v32/github"
+	"github.com/irbekrm/notify/internal/receiver"
+	"github.com/irbekrm/notify/internal/repo"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-type Repository struct {
-	Name  string
-	Owner string
-}
-
-type RepositoriesList struct {
-	Repositories []Repository
-}
-
 func main() {
 	var configPath *string = flag.String("configpath", "", "path to directory with config.yaml")
+	var webhookUrl *string = flag.String("webhookurl", "", "incoming webhook url for Slack notifications backend")
 	flag.Parse()
 	viper.SetConfigName("config")
 	viper.AddConfigPath(*configPath)
@@ -28,18 +20,21 @@ func main() {
 		log.Fatalf("viper failed to read config: %v", err)
 	}
 
-	r := RepositoriesList{}
-	if err := viper.Unmarshal(&r); err != nil {
+	rl := repo.RepositoriesList{}
+	if err := viper.Unmarshal(&rl); err != nil {
 		log.Fatalf("viper failed to unmarshal config: %v", err)
 	}
-	fmt.Printf("%#v", r)
-	ctx := context.TODO()
-	client := github.NewClient(nil)
-	issues, _, err := client.Issues.ListByRepo(ctx, "irbekrm", "cidrgo", &github.IssueListByRepoOptions{})
+
+	rec, err := receiver.NewSlackReceiver(*webhookUrl)
 	if err != nil {
-		log.Fatalf("could not list issues: %v", err)
+		log.Fatalf("failed creating new receiver: %v", err)
 	}
-	for _, i := range issues {
-		fmt.Printf("Issue: %s ", *i.Title)
+
+	wg := &sync.WaitGroup{}
+	for _, r := range rl.Repositories {
+		client := repo.NewClient(r, rec)
+		wg.Add(1)
+		go client.WatchAndTell(wg)
 	}
+	wg.Wait()
 }
