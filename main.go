@@ -6,8 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/irbekrm/notify/internal/github"
 	"github.com/irbekrm/notify/internal/receiver"
+	"github.com/irbekrm/notify/internal/repo"
+	"github.com/irbekrm/notify/internal/store"
+	"github.com/irbekrm/notify/internal/watch"
 	flag "github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
@@ -15,7 +17,7 @@ import (
 func main() {
 	var configPath *string = flag.String("configpath", "", "path to directory with config.yaml")
 	var webhookUrl *string = flag.String("webhookurl", "", "incoming webhook url for Slack notifications backend")
-	var interval *time.Duration = flag.Duration("interval", 0, fmt.Sprintf(`Custom polling interval in format that would be accepted by time.ParseDuration (i.e 1m3s, 1h etc). Default: %v`, github.DEFAULTWATCHINTERVAL))
+	var interval *time.Duration = flag.Duration("interval", 0, fmt.Sprintf("Custom polling interval in format that would be accepted by time.ParseDuration (i.e 1m3s, 1h etc). Default: %v", watch.DEFAULTINTERVAL))
 	flag.Parse()
 	viper.SetConfigName("config")
 	viper.AddConfigPath(*configPath)
@@ -23,7 +25,7 @@ func main() {
 		log.Fatalf("viper failed to read config: %v", err)
 	}
 
-	rl := github.RepositoriesList{}
+	rl := repo.RepositoriesList{}
 	if err := viper.Unmarshal(&rl); err != nil {
 		log.Fatalf("viper failed to unmarshal config: %v", err)
 	}
@@ -32,17 +34,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed creating new receiver: %v", err)
 	}
-
-	var opts github.Options
+	_, err = store.NewRedisStore("localhost:6379", "")
+	if err != nil {
+		log.Fatalf("failed to establish db connection: %v", err)
+	}
+	var opts watch.Options
 	if f := flag.Lookup("interval"); f != nil && f.Changed {
-		opts = append(opts, github.WatchInterval(*interval))
+		opts = append(opts, watch.Interval(*interval))
 	}
 
 	wg := &sync.WaitGroup{}
 	for _, r := range rl.Repositories {
-		client := github.NewClient(r, rec, opts...)
+		watcher := watch.NewClient(r, rec, opts...)
 		wg.Add(1)
-		go client.WatchAndTell(wg)
+		go watcher.PollRepo(wg)
 	}
 	wg.Wait()
 }
