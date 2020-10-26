@@ -1,4 +1,4 @@
-package repo
+package github
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	wait "github.com/jbeda/go-wait"
 )
 
-const defaultInterval time.Duration = time.Minute * 5
+const DEFAULTWATCHINTERVAL time.Duration = time.Minute * 5
 
 type Client struct {
 	startTime time.Time
@@ -26,7 +26,7 @@ type Client struct {
 func NewClient(repo Repository, reciever receiver.Notifier, opts ...option) *Client {
 	c := &Client{
 		startTime: time.Now(),
-		interval:  defaultInterval,
+		interval:  DEFAULTWATCHINTERVAL,
 		repo:      repo,
 		reciever:  reciever,
 		seen:      make(map[int]bool),
@@ -35,6 +35,8 @@ func NewClient(repo Repository, reciever receiver.Notifier, opts ...option) *Cli
 	c.applyOptions(opts...)
 	return c
 }
+
+type Options []option
 
 type option func(*Client)
 
