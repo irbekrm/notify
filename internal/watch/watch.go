@@ -9,10 +9,15 @@ import (
 
 	"github.com/irbekrm/notify/internal/receiver"
 	"github.com/irbekrm/notify/internal/repo"
+	"github.com/irbekrm/notify/internal/store"
 	"github.com/jbeda/go-wait"
 )
 
-const DEFAULTINTERVAL time.Duration = time.Minute * 5
+const (
+	DEFAULTINTERVAL time.Duration = time.Minute * 5
+	TIMEFORMAT                    = time.RFC3339
+	TIMEROUND                     = time.Minute
+)
 
 type Client struct {
 	startTime time.Time
@@ -22,7 +27,7 @@ type Client struct {
 	reciever  receiver.Notifier
 }
 
-func NewClient(repo repo.Repository, reciever receiver.Notifier, opts ...option) *Client {
+func NewClient(repo repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) *Client {
 	c := &Client{
 		startTime: time.Now(),
 		interval:  DEFAULTINTERVAL,
