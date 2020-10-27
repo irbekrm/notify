@@ -45,7 +45,12 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, r := range rl.Repositories {
-		watcher := watch.NewClient(r, rec, db, opts...)
+		watcher, err := watch.NewClient(r, rec, db, opts...)
+		if err != nil {
+			log.Printf("failed creating new client for %s: %v", r, err)
+			// try to continue with the other repos
+			continue
+		}
 		wg.Add(1)
 		go watcher.PollRepo(wg)
 	}

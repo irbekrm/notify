@@ -27,17 +27,34 @@ type Client struct {
 	reciever  receiver.Notifier
 }
 
-func NewClient(repo repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) *Client {
-	st := StartTime{t: time.Now()}
+func NewClient(rp repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) (*Client, error) {
+	ctx := context.TODO()
+	var st StartTime
+	timeString, exists, err := db.ReadTime(ctx, rp)
+	// attempt to write start time to db even if failed reading it before
+	if !exists || err != nil {
+		st = StartTime{t: time.Now()}
+		err := db.WriteTime(ctx, fmt.Sprintf("%s", st), rp)
+		if err != nil {
+			// If we cannot connect to database we probably dont' want to continue
+			return nil, fmt.Errorf("failed writing start time to database: %v", err)
+		}
+	} else { // start time found in the database
+		st, err = parseTime(timeString)
+		if err != nil {
+			return nil, fmt.Errorf("failed parsing start time: %v", err)
+		}
+	}
+
 	c := &Client{
 		startTime: st,
 		interval:  DEFAULTINTERVAL,
-		repo:      repo,
+		repo:      rp,
 		reciever:  reciever,
 		seen:      make(map[int]bool),
 	}
 	c.applyOptions(opts...)
-	return c
+	return c, nil
 }
 
 type Options []option
@@ -62,7 +79,7 @@ func (c *Client) PollRepo(wg *sync.WaitGroup) {
 }
 
 func (c *Client) pollRepo() {
-	log.Printf("checking repo %s for new issues...", c.repo)
+	log.Printf("checking repo %s for new issues since %s...", c.repo, c.startTime)
 	ctx := context.TODO()
 	issues, err := c.repo.IssuesSince(ctx, c.startTime.t)
 	if err != nil {

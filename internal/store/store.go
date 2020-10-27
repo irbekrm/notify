@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"sync"
 
 	"github.com/irbekrm/notify/internal/repo"
@@ -12,13 +13,13 @@ type RWIssuerTimer interface {
 }
 
 type Issuer interface {
-	ReadIssues() ([]repo.Issue, error)
-	WriteIssue(repo.Issue) error
+	ReadIssues(context.Context, repo.Repository) ([]repo.Issue, error)
+	WriteIssue(context.Context, repo.Issue) error
 }
 
 type Timer interface {
-	ReadTime(string) (string, error)
-	WriteTime(string, string) error
+	ReadTime(context.Context, repo.Repository) (string, bool, error)
+	WriteTime(context.Context, string, repo.Repository) error
 }
 
 var dbConnPool sync.Pool
