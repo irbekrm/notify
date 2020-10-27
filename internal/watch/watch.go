@@ -20,7 +20,7 @@ const (
 )
 
 type Client struct {
-	startTime time.Time
+	startTime StartTime
 	seen      map[int]bool
 	interval  time.Duration
 	repo      repo.Repository
@@ -28,8 +28,9 @@ type Client struct {
 }
 
 func NewClient(repo repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) *Client {
+	st := StartTime{t: time.Now()}
 	c := &Client{
-		startTime: time.Now(),
+		startTime: st,
 		interval:  DEFAULTINTERVAL,
 		repo:      repo,
 		reciever:  reciever,
@@ -63,7 +64,7 @@ func (c *Client) PollRepo(wg *sync.WaitGroup) {
 func (c *Client) pollRepo() {
 	log.Printf("checking repo %s for new issues...", c.repo)
 	ctx := context.TODO()
-	issues, err := c.repo.IssuesSince(ctx, c.startTime)
+	issues, err := c.repo.IssuesSince(ctx, c.startTime.t)
 	if err != nil {
 		log.Fatalf("could not retrieve issues for repo %s: %v", c.repo, err)
 	}
@@ -75,4 +76,21 @@ func (c *Client) pollRepo() {
 			c.seen[number] = true
 		}
 	}
+}
+
+type StartTime struct {
+	t time.Time
+}
+
+func (s StartTime) String() string {
+	t := s.t.Round(TIMEROUND).Format(TIMEFORMAT)
+	return fmt.Sprintf("%s", t)
+}
+
+func parseTime(s string) (StartTime, error) {
+	t, err := time.Parse(TIMEFORMAT, s)
+	if err != nil {
+		return StartTime{}, fmt.Errorf("failed parsing %s as time: %v", s, err)
+	}
+	return StartTime{t: t}, nil
 }
