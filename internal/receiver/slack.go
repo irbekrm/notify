@@ -53,8 +53,8 @@ func (s *slack) Notify(msg string) error {
 	buff := bytes.Buffer{}
 	buff.ReadFrom(resp.Body)
 	defer resp.Body.Close()
-	if buff.String() != "ok" {
-		return fmt.Errorf("failed connecting to Slack: %v", buff.String())
+	if s := buff.String(); s != "ok" {
+		return fmt.Errorf("failed connecting to Slack: %v", s)
 	}
 	return nil
 }
