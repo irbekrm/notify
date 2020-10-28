@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/go-github/github"
@@ -30,11 +31,16 @@ func (r *Repository) IssuesSince(ctx context.Context, startTime time.Time) ([]Is
 	}
 	issues := []Issue{}
 	for _, i := range result {
+		labels := []string{}
+		for _, l := range i.Labels {
+			labels = append(labels, *l.Name)
+		}
 		issue := Issue{
 			number: i.GetNumber(),
 			repo:   fmt.Sprintf("%s", r),
 			url:    i.GetHTMLURL(),
 			title:  i.GetTitle(),
+			labels: labels,
 		}
 		issues = append(issues, issue)
 	}
@@ -46,6 +52,7 @@ type Issue struct {
 	repo   string
 	url    string
 	title  string
+	labels []string
 }
 
 func (i Issue) Number() int {
@@ -53,5 +60,5 @@ func (i Issue) Number() int {
 }
 
 func (i Issue) Description() string {
-	return fmt.Sprintf("issue #%d %q in repo %s!\n%s", i.number, i.title, i.repo, i.url)
+	return fmt.Sprintf("Issue #%d %q in repo %s!\nlabels: %s\nurl: %s", i.number, i.title, i.repo, strings.Join(i.labels, ", "), i.url)
 }
