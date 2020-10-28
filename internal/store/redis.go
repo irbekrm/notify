@@ -13,13 +13,12 @@ import (
 
 type Redis struct{}
 
-func NewRedisStore(addr, passwd string) (RWIssuerTimer, error) {
+func NewRedisStore(ctx context.Context, addr, passwd string) (RWIssuerTimer, error) {
 	dbConnPool = sync.Pool{
 		New: func() interface{} {
 			return redis.NewClient(&redis.Options{Addr: addr, Password: passwd})
 		},
 	}
-	ctx := context.TODO()
 	rdb := dbConnPool.Get().(*redis.Client)
 	defer dbConnPool.Put(rdb)
 	_, err := rdb.Ping(ctx).Result()

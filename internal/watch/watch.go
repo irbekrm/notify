@@ -27,8 +27,7 @@ type Client struct {
 	reciever  receiver.Notifier
 }
 
-func NewClient(rp repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) (*Client, error) {
-	ctx := context.TODO()
+func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) (*Client, error) {
 	var st StartTime
 	timeString, exists, err := db.ReadTime(ctx, rp)
 	// attempt to write start time to db even if failed reading it before
@@ -73,24 +72,26 @@ func Interval(interval time.Duration) option {
 	}
 }
 
-func (c *Client) PollRepo(wg *sync.WaitGroup) {
+func (c *Client) PollRepo(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	wait.Forever(c.pollRepo, c.interval)
+	f := c.pollRepoWithContextFunc(ctx)
+	wait.Forever(f, c.interval)
 }
 
-func (c *Client) pollRepo() {
-	log.Printf("checking repo %s for new issues since %s...", c.repo, c.startTime)
-	ctx := context.TODO()
-	issues, err := c.repo.IssuesSince(ctx, c.startTime.t)
-	if err != nil {
-		log.Fatalf("could not retrieve issues for repo %s: %v", c.repo, err)
-	}
-	for _, i := range issues {
-		number := i.Number()
-		if !c.seen[number] {
-			log.Printf("New issue: %s", i.Description())
-			c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
-			c.seen[number] = true
+func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
+	return func() {
+		log.Printf("checking repo %s for new issues since %s...", c.repo, c.startTime)
+		issues, err := c.repo.IssuesSince(ctx, c.startTime.t)
+		if err != nil {
+			log.Fatalf("could not retrieve issues for repo %s: %v", c.repo, err)
+		}
+		for _, i := range issues {
+			number := i.Number()
+			if !c.seen[number] {
+				log.Printf("New issue: %s", i.Description())
+				c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
+				c.seen[number] = true
+			}
 		}
 	}
 }

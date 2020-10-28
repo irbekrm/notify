@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"sync"
@@ -34,7 +35,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed creating new receiver: %v", err)
 	}
-	db, err := store.NewRedisStore("localhost:6379", "")
+
+	ctx := context.Background()
+
+	db, err := store.NewRedisStore(ctx, "localhost:6379", "")
 	if err != nil {
 		log.Fatalf("failed to establish db connection: %v", err)
 	}
@@ -45,14 +49,14 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, r := range rl.Repositories {
-		watcher, err := watch.NewClient(r, rec, db, opts...)
+		watcher, err := watch.NewClient(ctx, r, rec, db, opts...)
 		if err != nil {
 			log.Printf("failed creating new client for %s: %v", r, err)
 			// try to continue with the other repos
 			continue
 		}
 		wg.Add(1)
-		go watcher.PollRepo(wg)
+		go watcher.PollRepo(ctx, wg)
 	}
 	wg.Wait()
 }
