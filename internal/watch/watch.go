@@ -27,9 +27,9 @@ type Client struct {
 	reciever  receiver.Notifier
 }
 
-func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifier, db store.RWIssuerTimer, opts ...option) (*Client, error) {
+func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
 	var st StartTime
-	timeString, exists, err := db.ReadTime(ctx, rp)
+	timeString, exists, err := db.FindTime(ctx, rp)
 	// attempt to write start time to db even if failed reading it before
 	if !exists || err != nil {
 		st = StartTime{t: time.Now()}

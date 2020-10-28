@@ -7,18 +7,18 @@ import (
 	"github.com/irbekrm/notify/internal/repo"
 )
 
-type RWIssuerTimer interface {
+type WriterFinder interface {
 	Issuer
 	Timer
 }
 
 type Issuer interface {
-	ReadIssues(context.Context, repo.Repository) ([]repo.Issue, error)
+	FindIssue(context.Context, repo.Repository) ([]repo.Issue, bool, error)
 	WriteIssue(context.Context, repo.Issue) error
 }
 
 type Timer interface {
-	ReadTime(context.Context, repo.Repository) (string, bool, error)
+	FindTime(context.Context, repo.Repository) (string, bool, error)
 	WriteTime(context.Context, string, repo.Repository) error
 }
 

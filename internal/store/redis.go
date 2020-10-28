@@ -13,7 +13,7 @@ import (
 
 type Redis struct{}
 
-func NewRedisStore(ctx context.Context, addr, passwd string) (RWIssuerTimer, error) {
+func NewRedisStore(ctx context.Context, addr, passwd string) (WriterFinder, error) {
 	dbConnPool = sync.Pool{
 		New: func() interface{} {
 			return redis.NewClient(&redis.Options{Addr: addr, Password: passwd})
@@ -29,15 +29,15 @@ func NewRedisStore(ctx context.Context, addr, passwd string) (RWIssuerTimer, err
 	return &Redis{}, nil
 }
 
-func (r Redis) ReadIssues(ctx context.Context, rp repo.Repository) ([]repo.Issue, error) {
-	return []repo.Issue{}, nil
+func (r Redis) FindIssue(ctx context.Context, rp repo.Repository) ([]repo.Issue, bool, error) {
+	return []repo.Issue{}, false, nil
 }
 
 func (r Redis) WriteIssue(ctx context.Context, issue repo.Issue) error {
 	return nil
 }
 
-func (r Redis) ReadTime(ctx context.Context, rp repo.Repository) (string, bool, error) {
+func (r Redis) FindTime(ctx context.Context, rp repo.Repository) (string, bool, error) {
 	rdb := dbConnPool.Get().(*redis.Client)
 	defer dbConnPool.Put(rdb)
 	val, err := rdb.Get(ctx, rp.Name).Result()
