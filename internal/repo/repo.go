@@ -9,8 +9,9 @@ import (
 )
 
 type Repository struct {
-	Name  string
-	Owner string
+	Name   string
+	Owner  string
+	Labels []string `json:",omitempty"`
 }
 
 type RepositoriesList struct {
@@ -23,7 +24,7 @@ func (r Repository) String() string {
 
 func (r *Repository) IssuesSince(ctx context.Context, startTime time.Time) ([]Issue, error) {
 	gh := github.NewClient(nil)
-	result, _, err := gh.Issues.ListByRepo(ctx, r.Owner, r.Name, &github.IssueListByRepoOptions{Since: startTime})
+	result, _, err := gh.Issues.ListByRepo(ctx, r.Owner, r.Name, &github.IssueListByRepoOptions{Since: startTime, Labels: r.Labels})
 	if err != nil {
 		return nil, fmt.Errorf("could not list issues: %v", err)
 	}
