@@ -31,12 +31,35 @@ func (r *Repository) IssuesSince(ctx context.Context, startTime time.Time) ([]Is
 	}
 	issues := []Issue{}
 	for _, i := range result {
+		createdAt := i.GetClosedAt()
+		isInterestingUpdate := true
+		number := i.GetNumber()
+		if createdAt.Before(startTime) {
+			isInterestingUpdate = false
+			issueEvents, _, err := gh.Issues.ListIssueEvents(ctx, r.Owner, r.Name, number, &github.ListOptions{})
+			if err != nil {
+				return nil, fmt.Errorf("could not list issue events: %v", err)
+			}
+			for _, ie := range issueEvents {
+				if ie.CreatedAt.Before(startTime) {
+					// old event
+					continue
+				}
+				if *ie.Event == "labeled" {
+					isInterestingUpdate = true
+				}
+			}
+		}
+		if !isInterestingUpdate {
+			// the event is neither creation of a new issue nor adding of a new label
+			continue
+		}
 		labels := []string{}
 		for _, l := range i.Labels {
 			labels = append(labels, *l.Name)
 		}
 		issue := Issue{
-			number: i.GetNumber(),
+			number: number,
 			repo:   fmt.Sprintf("%s", r),
 			url:    i.GetHTMLURL(),
 			title:  i.GetTitle(),

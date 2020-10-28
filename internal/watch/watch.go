@@ -80,10 +80,10 @@ func (c *Client) PollRepo(ctx context.Context, wg *sync.WaitGroup) {
 
 func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
 	return func() {
-		log.Printf("checking repo %s for new issues since %s...", c.repo, c.startTime)
+		log.Printf("checking repo %s for issues updated since %s...", c.repo, c.startTime)
 		issues, err := c.repo.IssuesSince(ctx, c.startTime.t)
 		if err != nil {
-			log.Fatalf("could not retrieve issues for repo %s: %v", c.repo, err)
+			log.Printf("could not retrieve issues for repo %s: %v", c.repo, err)
 		}
 		for _, i := range issues {
 			issueExists, err := c.db.FindIssue(ctx, i, c.repo)
@@ -92,7 +92,7 @@ func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
 			}
 			// notify about new issue even in case of db error
 			if !issueExists || err != nil {
-				log.Printf("New issue: %s", i.Description())
+				log.Printf("New matching issue: %s", i.Description())
 				c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
 				err := c.db.WriteIssue(ctx, i, c.repo)
 				if err != nil {
