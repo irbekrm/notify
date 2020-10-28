@@ -21,10 +21,10 @@ const (
 
 type Client struct {
 	startTime StartTime
-	seen      map[int]bool
 	interval  time.Duration
 	repo      repo.Repository
 	reciever  receiver.Notifier
+	db        store.WriterFinder
 }
 
 func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
@@ -50,7 +50,7 @@ func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifi
 		interval:  DEFAULTINTERVAL,
 		repo:      rp,
 		reciever:  reciever,
-		seen:      make(map[int]bool),
+		db:        db,
 	}
 	c.applyOptions(opts...)
 	return c, nil
@@ -86,11 +86,18 @@ func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
 			log.Fatalf("could not retrieve issues for repo %s: %v", c.repo, err)
 		}
 		for _, i := range issues {
-			number := i.Number()
-			if !c.seen[number] {
+			issueExists, err := c.db.FindIssue(ctx, i, c.repo)
+			if err != nil {
+				log.Printf("could not check if issue exists in database: %v", err)
+			}
+			// notify about new issue even in case of db error
+			if !issueExists || err != nil {
 				log.Printf("New issue: %s", i.Description())
 				c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
-				c.seen[number] = true
+				err := c.db.WriteIssue(ctx, i, c.repo)
+				if err != nil {
+					log.Printf("could not write issue to database: %v", err)
+				}
 			}
 		}
 	}

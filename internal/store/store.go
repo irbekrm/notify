@@ -13,8 +13,8 @@ type WriterFinder interface {
 }
 
 type Issuer interface {
-	FindIssue(context.Context, repo.Repository) ([]repo.Issue, bool, error)
-	WriteIssue(context.Context, repo.Issue) error
+	FindIssue(context.Context, repo.Issue, repo.Repository) (bool, error)
+	WriteIssue(context.Context, repo.Issue, repo.Repository) error
 }
 
 type Timer interface {
