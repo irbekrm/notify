@@ -3,9 +3,11 @@ package repo
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/google/go-github/github"
+	"golang.org/x/oauth2"
 )
 
 type Finder interface {
@@ -18,12 +20,30 @@ type ghRepo struct {
 	authToken string
 }
 
-func NewFinder(r Repository) Finder {
-	return &ghRepo{r: r}
+func NewFinder(r Repository, opts ...option) Finder {
+	ghr := &ghRepo{r: r}
+	ghr.applyOptions(opts...)
+	return ghr
+}
+
+type Options []option
+
+type option func(*ghRepo)
+
+func (ghr *ghRepo) applyOptions(opts ...option) {
+	for _, o := range opts {
+		o(ghr)
+	}
+}
+
+func AuthToken(s string) option {
+	return func(ghr *ghRepo) {
+		ghr.authToken = s
+	}
 }
 
 func (ghr *ghRepo) Find(ctx context.Context, startTime time.Time) ([]Issue, error) {
-	ghc := github.NewClient(nil)
+	ghc := ghr.githubClient(ctx)
 	result, _, err := ghc.Issues.ListByRepo(ctx, ghr.r.Owner, ghr.r.Name, &github.IssueListByRepoOptions{Since: startTime, Labels: ghr.r.Labels})
 	if err != nil {
 		return nil, fmt.Errorf("could not list issues: %v", err)
@@ -71,4 +91,13 @@ func (ghr *ghRepo) Find(ctx context.Context, startTime time.Time) ([]Issue, erro
 
 func (ghr *ghRepo) RepoName() string {
 	return ghr.r.String()
+}
+
+func (ghr *ghRepo) githubClient(ctx context.Context) *github.Client {
+	var httpClient *http.Client
+	if ghr.authToken != "" {
+		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: ghr.authToken})
+		httpClient = oauth2.NewClient(ctx, ts)
+	}
+	return github.NewClient(httpClient)
 }

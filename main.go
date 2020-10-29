@@ -19,7 +19,9 @@ func main() {
 	var configPath *string = flag.String("configpath", "", "path to directory with config.yaml")
 	var webhookUrl *string = flag.String("webhookurl", "", "incoming webhook url for Slack notifications backend")
 	var interval *time.Duration = flag.Duration("interval", 0, fmt.Sprintf("Custom polling interval in format that would be accepted by time.ParseDuration (i.e 1m3s, 1h etc). Default: %v", watch.DEFAULTINTERVAL))
+	var token *string = flag.String("token", "", "Github personal access token. For accessing private repos or if GitHub rate limit becomes an issue")
 	flag.Parse()
+
 	viper.SetConfigName("config")
 	viper.AddConfigPath(*configPath)
 	if err := viper.ReadInConfig(); err != nil {
@@ -42,14 +44,20 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to establish db connection: %v", err)
 	}
+
 	var opts watch.Options
 	if f := flag.Lookup("interval"); f != nil && f.Changed {
 		opts = append(opts, watch.Interval(*interval))
 	}
 
+	var ghOpts repo.Options
+	if f := flag.Lookup("token"); f.Changed {
+		ghOpts = append(ghOpts, repo.AuthToken(*token))
+	}
+
 	wg := &sync.WaitGroup{}
 	for _, r := range rl.Repositories {
-		f := repo.NewFinder(r)
+		f := repo.NewFinder(r, ghOpts...)
 		watcher, err := watch.NewClient(ctx, f, rec, db, opts...)
 		if err != nil {
 			log.Printf("failed creating new client for %s: %v", r, err)
