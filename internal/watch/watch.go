@@ -22,18 +22,18 @@ const (
 type Client struct {
 	startTime StartTime
 	interval  time.Duration
-	repo      repo.Repository
+	rp        repo.Finder
 	reciever  receiver.Notifier
 	db        store.WriterFinder
 }
 
-func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
+func NewClient(ctx context.Context, rp repo.Finder, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
 	var st StartTime
-	timeString, exists, err := db.FindTime(ctx, rp)
+	timeString, exists, err := db.FindTime(ctx, rp.RepoName())
 	// attempt to write start time to db even if failed reading it before
 	if !exists || err != nil {
 		st = StartTime{t: time.Now()}
-		err := db.WriteTime(ctx, fmt.Sprintf("%s", st), rp)
+		err := db.WriteTime(ctx, fmt.Sprintf("%s", st), rp.RepoName())
 		if err != nil {
 			// If we cannot connect to database we probably dont' want to continue
 			return nil, fmt.Errorf("failed writing start time to database: %v", err)
@@ -48,7 +48,7 @@ func NewClient(ctx context.Context, rp repo.Repository, reciever receiver.Notifi
 	c := &Client{
 		startTime: st,
 		interval:  DEFAULTINTERVAL,
-		repo:      rp,
+		rp:        rp,
 		reciever:  reciever,
 		db:        db,
 	}
@@ -80,13 +80,13 @@ func (c *Client) PollRepo(ctx context.Context, wg *sync.WaitGroup) {
 
 func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
 	return func() {
-		log.Printf("checking repo %s for issues updated since %s...", c.repo, c.startTime)
-		issues, err := c.repo.IssuesSince(ctx, c.startTime.t)
+		log.Printf("checking repo %s for issues updated since %s...", c.rp.RepoName(), c.startTime)
+		issues, err := c.rp.Find(ctx, c.startTime.t)
 		if err != nil {
-			log.Printf("could not retrieve issues for repo %s: %v", c.repo, err)
+			log.Printf("could not retrieve issues for repo %s: %v", c.rp.RepoName(), err)
 		}
 		for _, i := range issues {
-			issueExists, err := c.db.FindIssue(ctx, i, c.repo)
+			issueExists, err := c.db.FindIssue(ctx, i, c.rp.RepoName())
 			if err != nil {
 				log.Printf("could not check if issue exists in database: %v", err)
 			}
@@ -94,7 +94,7 @@ func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
 			if !issueExists || err != nil {
 				log.Printf("New matching issue: %s", i.Description())
 				c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
-				err := c.db.WriteIssue(ctx, i, c.repo)
+				err := c.db.WriteIssue(ctx, i, c.rp.RepoName())
 				if err != nil {
 					log.Printf("could not write issue to database: %v", err)
 				}

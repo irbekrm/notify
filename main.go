@@ -49,7 +49,8 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, r := range rl.Repositories {
-		watcher, err := watch.NewClient(ctx, r, rec, db, opts...)
+		f := repo.NewFinder(r)
+		watcher, err := watch.NewClient(ctx, f, rec, db, opts...)
 		if err != nil {
 			log.Printf("failed creating new client for %s: %v", r, err)
 			// try to continue with the other repos

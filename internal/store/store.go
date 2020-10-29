@@ -13,13 +13,13 @@ type WriterFinder interface {
 }
 
 type Issuer interface {
-	FindIssue(context.Context, repo.Issue, repo.Repository) (bool, error)
-	WriteIssue(context.Context, repo.Issue, repo.Repository) error
+	FindIssue(context.Context, repo.Issue, string) (bool, error)
+	WriteIssue(context.Context, repo.Issue, string) error
 }
 
 type Timer interface {
-	FindTime(context.Context, repo.Repository) (string, bool, error)
-	WriteTime(context.Context, string, repo.Repository) error
+	FindTime(context.Context, string) (string, bool, error)
+	WriteTime(context.Context, string, string) error
 }
 
 var dbConnPool sync.Pool
