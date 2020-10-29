@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	DEFAULTINTERVAL time.Duration = time.Minute * 5
+	DEFAULTINTERVAL time.Duration = time.Minute * 30
 	TIMEFORMAT                    = time.RFC3339
 	TIMEROUND                     = time.Minute
 )
