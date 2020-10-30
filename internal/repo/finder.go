@@ -1,5 +1,6 @@
 package repo
 
+//go:generate mockgen -source=finder.go -destination=../../mocks/mock_finder.go -package=mocks
 import (
 	"context"
 	"fmt"
