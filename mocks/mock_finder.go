@@ -7,7 +7,7 @@ package mocks
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	repo "github.com/irbekrm/notify/internal/repo"
+	github "github.com/irbekrm/notify/internal/github"
 	reflect "reflect"
 	time "time"
 )
@@ -36,10 +36,10 @@ func (m *MockFinder) EXPECT() *MockFinderMockRecorder {
 }
 
 // Find mocks base method
-func (m *MockFinder) Find(arg0 context.Context, arg1 time.Time) ([]repo.Issue, error) {
+func (m *MockFinder) Find(arg0 context.Context, arg1 time.Time) ([]github.Issue, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Find", arg0, arg1)
-	ret0, _ := ret[0].([]repo.Issue)
+	ret0, _ := ret[0].([]github.Issue)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

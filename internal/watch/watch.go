@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/irbekrm/notify/internal/github"
 	"github.com/irbekrm/notify/internal/receiver"
-	"github.com/irbekrm/notify/internal/repo"
 	"github.com/irbekrm/notify/internal/store"
 	"github.com/jbeda/go-wait"
 )
@@ -22,12 +22,12 @@ const (
 type Client struct {
 	startTime StartTime
 	interval  time.Duration
-	rp        repo.Finder
+	rp        github.Finder
 	reciever  receiver.Notifier
 	db        store.WriterFinder
 }
 
-func NewClient(ctx context.Context, rp repo.Finder, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
+func NewClient(ctx context.Context, rp github.Finder, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
 	var st StartTime
 	timeString, exists, err := db.FindTime(ctx, rp.RepoName())
 	// attempt to write start time to db even if failed reading it before

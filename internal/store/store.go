@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/irbekrm/notify/internal/repo"
+	"github.com/irbekrm/notify/internal/github"
 )
 
 type WriterFinder interface {
@@ -13,8 +13,8 @@ type WriterFinder interface {
 }
 
 type Issuer interface {
-	FindIssue(context.Context, repo.Issue, string) (bool, error)
-	WriteIssue(context.Context, repo.Issue, string) error
+	FindIssue(context.Context, github.Issue, string) (bool, error)
+	WriteIssue(context.Context, github.Issue, string) error
 }
 
 type Timer interface {

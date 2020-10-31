@@ -6,9 +6,8 @@ import (
 	"log"
 	"sync"
 
-	"github.com/irbekrm/notify/internal/repo"
-
 	redis "github.com/go-redis/redis/v8"
+	"github.com/irbekrm/notify/internal/github"
 )
 
 const (
@@ -34,14 +33,14 @@ func NewRedisStore(ctx context.Context, addr, passwd string) (WriterFinder, erro
 	return &Redis{}, nil
 }
 
-func (r Redis) FindIssue(ctx context.Context, issue repo.Issue, repoName string) (bool, error) {
+func (r Redis) FindIssue(ctx context.Context, issue github.Issue, repoName string) (bool, error) {
 	rdb := dbConnPool.Get().(*redis.Client)
 	defer dbConnPool.Put(rdb)
 	key := repoIssuesKey(repoName)
 	return rdb.SIsMember(ctx, key, issue.Number()).Result()
 }
 
-func (r Redis) WriteIssue(ctx context.Context, issue repo.Issue, repoName string) error {
+func (r Redis) WriteIssue(ctx context.Context, issue github.Issue, repoName string) error {
 	rdb := dbConnPool.Get().(*redis.Client)
 	defer dbConnPool.Put(rdb)
 	key := repoIssuesKey(repoName)

@@ -1,6 +1,5 @@
-package repo
+package github
 
-//go:generate mockgen -source=finder.go -destination=../../mocks/mock_finder.go -package=mocks
 import (
 	"context"
 	"fmt"
@@ -11,39 +10,34 @@ import (
 	"golang.org/x/oauth2"
 )
 
-type Finder interface {
-	Find(context.Context, time.Time) ([]Issue, error)
-	RepoName() string
-}
-
-type ghRepo struct {
+type client struct {
 	r         Repository
 	authToken string
 }
 
-func NewFinder(r Repository, opts ...option) Finder {
-	ghr := &ghRepo{r: r}
+func NewGithubClient(r Repository, opts ...option) Finder {
+	ghr := &client{r: r}
 	ghr.applyOptions(opts...)
 	return ghr
 }
 
 type Options []option
 
-type option func(*ghRepo)
+type option func(*client)
 
-func (ghr *ghRepo) applyOptions(opts ...option) {
+func (ghr *client) applyOptions(opts ...option) {
 	for _, o := range opts {
 		o(ghr)
 	}
 }
 
 func AuthToken(s string) option {
-	return func(ghr *ghRepo) {
+	return func(ghr *client) {
 		ghr.authToken = s
 	}
 }
 
-func (ghr *ghRepo) Find(ctx context.Context, startTime time.Time) ([]Issue, error) {
+func (ghr *client) Find(ctx context.Context, startTime time.Time) ([]Issue, error) {
 	ghc := ghr.githubClient(ctx)
 	result, _, err := ghc.Issues.ListByRepo(ctx, ghr.r.Owner, ghr.r.Name, &github.IssueListByRepoOptions{Since: startTime, Labels: ghr.r.Labels})
 	if err != nil {
@@ -90,11 +84,11 @@ func (ghr *ghRepo) Find(ctx context.Context, startTime time.Time) ([]Issue, erro
 	return issues, nil
 }
 
-func (ghr *ghRepo) RepoName() string {
+func (ghr *client) RepoName() string {
 	return ghr.r.String()
 }
 
-func (ghr *ghRepo) githubClient(ctx context.Context) *github.Client {
+func (ghr *client) githubClient(ctx context.Context) *github.Client {
 	var httpClient *http.Client
 	if ghr.authToken != "" {
 		ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: ghr.authToken})

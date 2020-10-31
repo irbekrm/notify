@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/irbekrm/notify/internal/github"
 	"github.com/irbekrm/notify/internal/receiver"
-	"github.com/irbekrm/notify/internal/repo"
 	"github.com/irbekrm/notify/internal/store"
 	"github.com/irbekrm/notify/internal/watch"
 	flag "github.com/spf13/pflag"
@@ -28,7 +28,7 @@ func main() {
 		log.Fatalf("viper failed to read config: %v", err)
 	}
 
-	rl := repo.RepositoriesList{}
+	rl := github.RepositoriesList{}
 	if err := viper.Unmarshal(&rl); err != nil {
 		log.Fatalf("viper failed to unmarshal config: %v", err)
 	}
@@ -50,14 +50,14 @@ func main() {
 		opts = append(opts, watch.Interval(*interval))
 	}
 
-	var ghOpts repo.Options
+	var ghOpts github.Options
 	if f := flag.Lookup("token"); f.Changed {
-		ghOpts = append(ghOpts, repo.AuthToken(*token))
+		ghOpts = append(ghOpts, github.AuthToken(*token))
 	}
 
 	wg := &sync.WaitGroup{}
 	for _, r := range rl.Repositories {
-		f := repo.NewFinder(r, ghOpts...)
+		f := github.NewGithubClient(r, ghOpts...)
 		watcher, err := watch.NewClient(ctx, f, rec, db, opts...)
 		if err != nil {
 			log.Printf("failed creating new client for %s: %v", r, err)
