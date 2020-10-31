@@ -24,10 +24,10 @@ type Client struct {
 	interval  time.Duration
 	rp        github.Finder
 	reciever  receiver.Notifier
-	db        store.WriterFinder
+	db        store.DB
 }
 
-func NewClient(ctx context.Context, rp github.Finder, reciever receiver.Notifier, db store.WriterFinder, opts ...option) (*Client, error) {
+func NewClient(ctx context.Context, rp github.Finder, reciever receiver.Notifier, db store.DB, opts ...option) (*Client, error) {
 	var st StartTime
 	timeString, exists, err := db.FindTime(ctx, rp.RepoName())
 	// attempt to write start time to db even if failed reading it before
@@ -74,11 +74,11 @@ func Interval(interval time.Duration) option {
 
 func (c *Client) PollRepo(ctx context.Context, wg *sync.WaitGroup) {
 	defer wg.Done()
-	f := c.pollRepoWithContextFunc(ctx)
+	f := c.PollRepoFunc(ctx)
 	wait.Forever(f, c.interval)
 }
 
-func (c *Client) pollRepoWithContextFunc(ctx context.Context) func() {
+func (c *Client) PollRepoFunc(ctx context.Context) func() {
 	return func() {
 		log.Printf("checking repo %s for issues updated since %s...", c.rp.RepoName(), c.startTime)
 		issues, err := c.rp.Find(ctx, c.startTime.t)

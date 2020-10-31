@@ -1,5 +1,6 @@
 package store
 
+//go:generate mockgen -source=db.go -destination=../../mocks/mock_db.go -package=mocks
 import (
 	"context"
 	"sync"
@@ -7,17 +8,17 @@ import (
 	"github.com/irbekrm/notify/internal/github"
 )
 
-type WriterFinder interface {
-	Issuer
-	Timer
+type DB interface {
+	FWIssue
+	FWTime
 }
 
-type Issuer interface {
+type FWIssue interface {
 	FindIssue(context.Context, github.Issue, string) (bool, error)
 	WriteIssue(context.Context, github.Issue, string) error
 }
 
-type Timer interface {
+type FWTime interface {
 	FindTime(context.Context, string) (string, bool, error)
 	WriteTime(context.Context, string, string) error
 }

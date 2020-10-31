@@ -17,7 +17,7 @@ const (
 
 type Redis struct{}
 
-func NewRedisStore(ctx context.Context, addr, passwd string) (WriterFinder, error) {
+func NewRedisStore(ctx context.Context, addr, passwd string) (DB, error) {
 	dbConnPool = sync.Pool{
 		New: func() interface{} {
 			return redis.NewClient(&redis.Options{Addr: addr, Password: passwd})
