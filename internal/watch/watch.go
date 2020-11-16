@@ -93,8 +93,9 @@ func (c *Client) PollRepoFunc(ctx context.Context) func() {
 				}
 				// notify about new issue even in case of db error
 				if !issueExists || err != nil {
-					log.Printf("New matching issue: %s", i.Description())
-					c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
+					issueDescription := i.Description()
+					log.Printf("New matching issue: %s", issueDescription)
+					c.reciever.Notify(issueNotification(issueDescription))
 					err := c.db.WriteIssue(ctx, i, repoName)
 					if err != nil {
 						log.Printf("could not write issue to database: %v", err)
@@ -120,4 +121,8 @@ func parseTime(s string) (StartTime, error) {
 		return StartTime{}, fmt.Errorf("failed parsing %s as time: %v", s, err)
 	}
 	return StartTime{t: t}, nil
+}
+
+func issueNotification(description string) string {
+	return fmt.Sprintf("New issue: %s", description)
 }
