@@ -1,11 +1,17 @@
 package github
 
+//go:generate mockgen -source=issue.go -destination=../../mocks/mock_issue.go -package=mocks
 import (
 	"fmt"
 	"strings"
 )
 
-type Issue struct {
+type Issue interface {
+	Number() int
+	Description() string
+}
+
+type issue struct {
 	number int
 	repo   string
 	url    string
@@ -13,10 +19,10 @@ type Issue struct {
 	labels []string
 }
 
-func (i Issue) Number() int {
+func (i issue) Number() int {
 	return i.number
 }
 
-func (i Issue) Description() string {
+func (i issue) Description() string {
 	return fmt.Sprintf("Issue #%d %q in repo %s!\nlabels: %s\nurl: %s", i.number, i.title, i.repo, strings.Join(i.labels, ", "), i.url)
 }

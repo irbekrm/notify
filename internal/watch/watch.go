@@ -80,23 +80,25 @@ func (c *Client) PollRepo(ctx context.Context, wg *sync.WaitGroup) {
 
 func (c *Client) PollRepoFunc(ctx context.Context) func() {
 	return func() {
-		log.Printf("checking repo %s for issues updated since %s...", c.rp.RepoName(), c.startTime)
+		repoName := c.rp.RepoName()
+		log.Printf("checking repo %s for issues updated since %s...", repoName, c.startTime)
 		issues, err := c.rp.Find(ctx, c.startTime.t)
 		if err != nil {
-			log.Printf("could not retrieve issues for repo %s: %v", c.rp.RepoName(), err)
-		}
-		for _, i := range issues {
-			issueExists, err := c.db.FindIssue(ctx, i, c.rp.RepoName())
-			if err != nil {
-				log.Printf("could not check if issue exists in database: %v", err)
-			}
-			// notify about new issue even in case of db error
-			if !issueExists || err != nil {
-				log.Printf("New matching issue: %s", i.Description())
-				c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
-				err := c.db.WriteIssue(ctx, i, c.rp.RepoName())
+			log.Printf("could not retrieve issues for repo %s: %v", repoName, err)
+		} else {
+			for _, i := range issues {
+				issueExists, err := c.db.FindIssue(ctx, i, repoName)
 				if err != nil {
-					log.Printf("could not write issue to database: %v", err)
+					log.Printf("could not check if issue exists in database: %v", err)
+				}
+				// notify about new issue even in case of db error
+				if !issueExists || err != nil {
+					log.Printf("New matching issue: %s", i.Description())
+					c.reciever.Notify(fmt.Sprintf("New issue: %s", i.Description()))
+					err := c.db.WriteIssue(ctx, i, repoName)
+					if err != nil {
+						log.Printf("could not write issue to database: %v", err)
+					}
 				}
 			}
 		}
